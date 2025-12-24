@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تطبيق مواقيت الصلاة</title>
+
+<style>
+:root{
+  --bg:#0d1117;
+  --card:#161b22;
+  --text:#e6edf3;
+  --accent:#2f81f7;
+  --muted:#8b949e;
+}
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+#loader{
+  position:fixed;
+  inset:0;
+  background:var(--bg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  z-index:999;
+}
+#loader span{
+  margin-top:15px;
+  color:var(--muted);
+}
+.app{
+  padding:20px;
+  max-width:420px;
+  margin:auto;
+}
+h1{
+  text-align:center;
+  margin-bottom:5px;
+}
+.subtitle{
+  text-align:center;
+  color:var(--muted);
+  font-size:14px;
+  margin-bottom:20px;
+}
+.card{
+  background:var(--card);
+  border-radius:14px;
+  padding:15px;
+  margin-bottom:15px;
+}
+.prayer{
+  display:flex;
+  justify-content:space-between;
+  padding:10px 0;
+  border-bottom:1px solid #222;
+}
+.prayer:last-child{border:none;}
+.name{font-weight:600;}
+.time{color:var(--accent);font-weight:600;}
+.footer{
+  text-align:center;
+  font-size:12px;
+  color:var(--muted);
+  margin-top:20px;
+}
+select{
+  width:100%;
+  padding:10px;
+  background:#0d1117;
+  color:var(--text);
+  border:1px solid #30363d;
+  border-radius:10px;
+}
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:var(--accent);
+  color:#fff;
+  font-size:15px;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- شاشة تحميل -->
+<div id="loader">
+  <h2>🕌 مواقيت الصلاة</h2>
+  <span>جاري التحميل...</span>
+</div>
+
+<div class="app" style="display:none" id="app">
+
+<h1>🕌 مواقيت الصلاة</h1>
+<div class="subtitle">توقيت المملكة العربية السعودية</div>
+
+<div class="card">
+  <select id="city">
+    <option value="21.3891,39.8579">مكة المكرمة</option>
+    <option value="24.7136,46.6753">الرياض</option>
+    <option value="21.4858,39.1925">جدة</option>
+    <option value="26.4207,50.0888">الدمام</option>
+    <option value="24.5247,39.5692">المدينة المنورة</option>
+  </select>
+  <button onclick="loadTimes()">تحديث المواقيت</button>
+</div>
+
+<div class="card" id="times">
+  <div class="prayer"><span class="name">الفجر</span><span class="time" id="fajr">--:--</span></div>
+  <div class="prayer"><span class="name">الظهر</span><span class="time" id="dhuhr">--:--</span></div>
+  <div class="prayer"><span class="name">العصر</span><span class="time" id="asr">--:--</span></div>
+  <div class="prayer"><span class="name">المغرب</span><span class="time" id="maghrib">--:--</span></div>
+  <div class="prayer"><span class="name">العشاء</span><span class="time" id="isha">--:--</span></div>
+</div>
+
+<div class="footer">
+  © 2025 — تطوير: خميس مراد جروان
+</div>
+
+</div>
+
+<script>
+function format12(time){
+  let [h,m]=time.split(":");
+  h=parseInt(h);
+  let p=h>=12?"م":"ص";
+  h=h%12||12;
+  return h+":"+m+" "+p;
+}
+
+async function loadTimes(){
+  const city=document.getElementById("city").value;
+  const [lat,lon]=city.split(",");
+  const res=await fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=4`);
+  const data=await res.json();
+  const t=data.data.timings;
+
+  const times={
+    fajr:format12(t.Fajr),
+    dhuhr:format12(t.Dhuhr),
+    asr:format12(t.Asr),
+    maghrib:format12(t.Maghrib),
+    isha:format12(t.Isha)
+  };
+
+  Object.keys(times).forEach(k=>{
+    document.getElementById(k).textContent=times[k];
+  });
+
+  localStorage.setItem("prayerTimes",JSON.stringify(times));
+}
+
+window.onload=()=>{
+  setTimeout(()=>{
+    document.getElementById("loader").style.display="none";
+    document.getElementById("app").style.display="block";
+
+    const saved=localStorage.getItem("prayerTimes");
+    if(saved){
+      const t=JSON.parse(saved);
+      Object.keys(t).forEach(k=>{
+        document.getElementById(k).textContent=t[k];
+      });
+    }else{
+      loadTimes();
+    }
+  },1500);
+};
+</script>
+
+</body>
+</html>
